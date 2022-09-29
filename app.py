@@ -161,8 +161,6 @@ def phones__update(
             if phone is not None:
                 args_for_request.append("phoneValue=:phone")
 
-            args_2 = ", ".join(args_for_request)
-
             connection.execute(
                 "UPDATE phones "
                 f'SET {", ".join(args_for_request)} '
