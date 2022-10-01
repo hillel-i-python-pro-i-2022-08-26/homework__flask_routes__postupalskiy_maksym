@@ -1,11 +1,12 @@
 # wsgi app
 flask==2.2.2
+webargs==8.2.0
 # get request
 requests==2.28.1
 # for clear code
 black==22.8.0
 flake8==5.0.4
-pyupgrade==2.38.0
+pyupgrade==2.38.2
 pre-commit==2.20.0
 # name generator
-faker==14.2.0
+faker==15.0.0

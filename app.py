@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, Response
 from faker import Faker
 from pathlib import Path
 from _collections_abc import Generator
@@ -6,12 +6,17 @@ from typing import Any
 import json
 import requests
 import csv
+from webargs import fields
+from webargs.flaskparser import use_args
+
+
+from application.services.db_table import create_table
+from application.services.db_connection import DBConnection
 
 app = Flask(__name__)
 fake = Faker()
 
 file_path = Path("test_for_route")
-UPLOAD_FOLDER = "/path/to/the/uploads"
 
 
 # Main page
@@ -23,6 +28,11 @@ def main_page() -> str:
         "<h3><li><a href='/generate-users/'>generate-users</a></li></h3>"
         "<h3><li><a href='/space/'>space</a></li></h3>"
         "<h3><li><a href='/mean/'>mean</a></li></h3>"
+        "<h3><li><a href='/phones/create'>create table</a></li></h3>"
+        "<h3><li><a href='/phones/read-all'>read all</a></li></h3>"
+        "<h3><li><a href='/phones/read/'>read for id</a></li></h3>"
+        "<h3><li><a href='/phones/update/'>update</a></li></h3>"
+        "<h3><li><a href='/phones/delete/'>delete</a></li></h3>"
     )
 
 
@@ -80,6 +90,106 @@ def mean() -> str:
         f"<p>Number of participants: {total_index}."
     )
 
+
+@app.route("/phones/create")
+@use_args(
+    {"contactName": fields.Str(required=True), "phoneValue": fields.Int(required=True)},
+    location="query",
+)
+def phones_create(args):
+    with DBConnection() as connection:
+        with connection:
+            connection.execute(
+                """INSERT INTO phones (contactName, phoneValue)
+                VALUES (:contactName, :phoneValue);""",
+                {"contactName": args["contactName"], "phoneValue": args["phoneValue"]},
+            )
+    return "OK"
+
+
+@app.route("/phones/read-all")
+def phones__read_all():
+    with DBConnection() as connection:
+        phones = connection.execute(
+            """
+            SELECT * FROM phones;
+        """
+        ).fetchall()
+    return "<br>".join(
+        [
+            f'{value["phoneID"]}: {value["contactName"]} - {value["phoneValue"]}'
+            for value in phones
+        ]
+    )
+
+
+@app.route("/phones/read/<int:phone_id>")
+def users__read(phone_id: int):
+    with DBConnection() as connection:
+        value = connection.execute(
+            """
+            SELECT * FROM phones
+            WHERE (phoneID=:phone_id);
+            """,
+            {
+                "phone_id": phone_id,
+            },
+        ).fetchone()
+
+    return f'{value["phoneID"]}: {value["contactName"]} - {value["phoneValue"]}'
+
+
+@app.route("/phones/update/<int:phone_id>")
+@use_args({"phoneValue": fields.Int(), "contactName": fields.Str()}, location="query")
+def phones__update(
+    args,
+    phone_id: int,
+):
+    with DBConnection() as connection:
+        with connection:
+            name = args.get("contactName")
+            phone = args.get("phoneValue")
+            if name is None and phone is None:
+                return Response(
+                    "Need to provide at least one argument",
+                    status=400,
+                )
+
+            args_for_request = []
+            if name is not None:
+                args_for_request.append("contactName=:name")
+            if phone is not None:
+                args_for_request.append("phoneValue=:phone")
+
+            connection.execute(
+                "UPDATE phones "
+                f'SET {", ".join(args_for_request)} '
+                "WHERE phoneID=:phone_id;",
+                {
+                    "phone_id": phone_id,
+                    "phone": phone,
+                    "name": name,
+                },
+            )
+
+    return "Ok"
+
+
+@app.route("/phones/delete/<int:phone_id>")
+def users__delete(phone_id):
+    with DBConnection() as connection:
+        with connection:
+            connection.execute(
+                "DELETE " "FROM phones " "WHERE (phoneID=:phone_id);",
+                {
+                    "phone_id": phone_id,
+                },
+            )
+
+    return "Ok"
+
+
+create_table()
 
 if __name__ == "__main__":
     app.run(debug=True)

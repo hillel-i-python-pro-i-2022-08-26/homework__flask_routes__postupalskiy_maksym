@@ -19,4 +19,9 @@ make homework-i-run
 <li>/generate-users/</li>
 <li>/space/</li>
 <li>/mean/</li>
+<li>/phones/create?contactName=(your name)&phoneValue=(number)</li>
+<li>/phones/read-all</li>
+<li>/phones/read/(id)</li>
+/phones/update/(id)?contactName=(your name)&phoneValue=(number)
+<li>/phones/delete/(id)</li>
 </ul>
